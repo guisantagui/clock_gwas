@@ -845,9 +845,9 @@ length(unique(bs_ind_mdat$individualID)) == nrow(bs_ind_mdat)
 
 ind_mdat_filt <- rbind.data.frame(
         ind_mdat_filt,
-        bs_ind_mdat[, colnames(ind_mdat_filt)],
-        nabec_ind_mdat[, colnames(ind_mdat_filt)],
-        tbi_ind_mdat[, colnames(ind_mdat_filt)]
+        bs_ind_mdat[bs_ind_mdat$individualID %in% samp_mdat_rnaseq$individualID, colnames(ind_mdat_filt)],
+        nabec_ind_mdat[nabec_ind_mdat$individualID %in% samp_mdat_rnaseq$individualID, colnames(ind_mdat_filt)],
+        tbi_ind_mdat[tbi_ind_mdat$individualID %in% samp_mdat_rnaseq$individualID, colnames(ind_mdat_filt)]
 )
 
 length(unique(ind_mdat_filt$individualID))

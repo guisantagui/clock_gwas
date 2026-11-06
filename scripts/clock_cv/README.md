@@ -27,7 +27,7 @@ Inputs (from `scripts/parse_counts/parse_counts.R` and the HPC notebook):
   samples one at a time, without their ages:
   1. gene filter (≥ 80 % zeros; mean count < 1 in every 5-year age bin)
   2. log2(counts + 1), quantile normalisation to the training reference
-  3. `sva` on training (`mod = ~ age + region`, `mod0 = ~ region`, `n.sv` from `num.sv` unless fixed),
+  3. `SmartSVA::smartsva.cpp` (as in the paper; `--sva_method sva` for sva::sva) on training (`mod = ~ age + region`, `mod0 = ~ region`, `n.sv` from `num.sv` leek, `--n_sv rmt` for EstDimRMT + 1, or a fixed number),
      then a per-sample SV projection, the `fast` branch of `fsva` without its batch re-scaling
      (see `sva_fit()` in `cv_utils.R`). `fsva(method = "exact")` needs one SVD of the full training matrix
      per held-out sample, which is not feasible here.

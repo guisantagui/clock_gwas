@@ -70,6 +70,9 @@ load_metadata <- function(samp_f, ind_f, region_map_f) {
         s$has_genomics <- (i$has_WGS | i$has_snpArray)[m] %in% TRUE
         s$diagn_ind <- i$diagn_4BrainClck[m]
         s$is_control <- s$diagn_4BrainClck == "Control"
+        # Library type is a batch within NABEC (cohort = NABEC_mRNA / NABEC_totalRNA).
+        nabec <- s$substudy == "NABEC" & grepl("^NABEC_", s$cohort)
+        s$substudy_batch[nabec] <- s$cohort[nabec]
         s
 }
 
@@ -169,18 +172,23 @@ qn_apply <- function(log2_x, target) {
 # The same projection is applied to the training samples (for sva it
 # reproduces sva's SVs exactly), so training and held-out data are corrected
 # with the same map.
-sva_fit <- function(dat, mod, mod0, n_sv = "auto", method = c("sva", "smartsva"), B = 5) {
+sva_fit <- function(dat, mod, mod0, n_sv = "leek", method = c("smartsva", "sva"), B = 5) {
         method <- match.arg(method)
-        if (identical(n_sv, "auto")) {
+        if (identical(n_sv, "leek") || identical(n_sv, "auto")) {
                 n_sv <- sva::num.sv(dat, mod, method = "leek")
                 message("num.sv (leek): ", n_sv)
+        } else if (identical(n_sv, "rmt")) {
+                # As in brain_clock sva_fast_exe.R: RMT on residuals of the full model.
+                res <- dat - dat %*% mod %*% solve(crossprod(mod)) %*% t(mod)
+                n_sv <- isva::EstDimRMT(res, FALSE)$dim + 1
+                message("EstDimRMT + 1: ", n_sv)
         }
         n_sv <- as.integer(n_sv)
         if (n_sv == 0) return(list(n_sv = 0L, genes = rownames(dat)))
         if (method == "sva") {
                 fit <- sva::sva(dat, mod, mod0, n.sv = n_sv, B = B)
         } else {
-                fit <- SmartSVA::smartsva.cpp(dat, mod, mod0, n.sv = n_sv, B = B)
+                fit <- SmartSVA::smartsva.cpp(dat, mod, mod0, n.sv = n_sv)
         }
         wts <- fit$pprob.gam * (1 - fit$pprob.b)
         mu <- rowMeans(dat)

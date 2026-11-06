@@ -49,9 +49,9 @@ p <- add_argument(p, "--min_train_age", help = "Minimum age of training controls
 p <- add_argument(p, "--min_rin", help = "Minimum RIN of training samples (NA RIN allowed).", default = 6)
 p <- add_argument(p, "--sva_mod", help = "Full model for SVA.", default = "~ age + region")
 p <- add_argument(p, "--sva_mod0", help = "Null model for SVA.", default = "~ region")
-p <- add_argument(p, "--n_sv", help = "Number of SVs, or 'auto' (num.sv, leek).", default = "auto")
-p <- add_argument(p, "--sva_method", help = "'sva' or 'smartsva'.", default = "sva")
-p <- add_argument(p, "--alphas", help = "Comma-separated elastic net alphas.", default = "0.25,0.5,0.75,1")
+p <- add_argument(p, "--n_sv", help = "Number of SVs, or 'leek' (num.sv) or 'rmt' (EstDimRMT + 1).", default = "leek")
+p <- add_argument(p, "--sva_method", help = "'smartsva' (SmartSVA::smartsva.cpp, as in the paper) or 'sva' (sva::sva, slower).", default = "smartsva")
+p <- add_argument(p, "--alphas", help = "Comma-separated elastic net alphas.", default = "0.05,0.1,0.25,0.5,1")
 p <- add_argument(p, "--n_inner", help = "Inner CV folds.", default = 10L)
 p <- add_argument(p, "--lambda", help = "'lambda.min' or 'lambda.1se'.", default = "lambda.min")
 p <- add_argument(p, "--region_covariates", help = "Add unpenalised region indicators to the model.",
@@ -160,9 +160,9 @@ if (nlevels(s_train$region_f) < 2) {
 mdat_sva <- data.frame(age = s_train$age, region = s_train$region_f)
 mod <- model.matrix(as.formula(sva_mod), data = mdat_sva)
 mod0 <- model.matrix(as.formula(sva_mod0), data = mdat_sva)
-n_sv <- if (a$n_sv == "auto") "auto" else as.integer(a$n_sv)
+n_sv <- if (a$n_sv %in% c("leek", "rmt", "auto")) a$n_sv else as.integer(a$n_sv)
 sv <- sva_fit(x_train, mod, mod0, n_sv = n_sv, method = a$sva_method)
-logmsg("SVA: ", sv$n_sv, " SVs; |cor| with sva SVs: ",
+logmsg("SVA (", a$sva_method, "): ", sv$n_sv, " SVs; |cor| projection vs SVA SVs: ",
        if (sv$n_sv > 0) sprintf("%.3f", min(abs(sv$cor_with_sva))) else "NA")
 x_train <- sva_apply(sv, x_train)
 x_test <- sva_apply(sv, x_test)

@@ -37,7 +37,7 @@ p <- add_argument(p, "--region_map", help = "tissue -> region table.",
 p <- add_argument(p, "--exclude_regions", help = "Regions left out.", default = "cerebellum")
 p <- add_argument(p, "--min_train_age", help = "Minimum age of controls in the residualisation fit.", default = 20)
 p <- add_argument(p, "--resid_formula", help = "Residualisation model (fit on OOF controls).",
-                  default = "predicted_age ~ ns(age_used, df = 4) + substudy + region")
+                  default = "predicted_age ~ ns(age_used, df = 4) + substudy_batch + region")
 p <- add_argument(p, "--topcode_age_female", help = "Imputed age for top-coded females (e.g. life-table E[age | >= 90]).",
                   type = "numeric", default = NA)
 p <- add_argument(p, "--topcode_age_male", help = "Imputed age for top-coded males.",
