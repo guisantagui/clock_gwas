@@ -98,6 +98,11 @@ read_gene_universe <- function(universe, lincs_f) {
 # gene universe, as a numeric matrix. The result is cached as RDS because the
 # CSV takes a while to parse.
 load_counts <- function(counts_f, genes = NULL, cache_f = NULL) {
+        if (!is.null(cache_f) && file.exists(cache_f) &&
+            file.mtime(cache_f) < file.mtime(counts_f)) {
+                message("Counts file is newer than the cache; rebuilding ", cache_f)
+                file.remove(cache_f)
+        }
         if (!is.null(cache_f) && file.exists(cache_f)) {
                 message("Loading cached counts: ", cache_f)
                 return(readRDS(cache_f))
