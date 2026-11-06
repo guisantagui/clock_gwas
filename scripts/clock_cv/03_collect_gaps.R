@@ -204,7 +204,7 @@ if (nrow(ext) > 0) {
 f0 <- file.path(a$outdir, "rep1", "fold0", "predictions.csv")
 if (file.exists(f0)) {
         p0 <- read.csv(f0, stringsAsFactors = FALSE)
-        cases <- d[!d$is_control & d$role == "cv", c("sample_id", "predicted_age")]
+        cases <- d[d$diagn_4BrainClck != "Control" & d$role == "cv", c("sample_id", "predicted_age")]
         cmp <- merge(cases, p0[, c("sample_id", "predicted_age")], by = "sample_id",
                      suffixes = c("_oof", "_final"))
         dif <- cmp$predicted_age_oof - cmp$predicted_age_final
