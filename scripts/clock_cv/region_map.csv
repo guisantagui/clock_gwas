@@ -1,0 +1,34 @@
+tissue,region
+Amygdala,amygdala
+Anterior cingulate cortex (BA24),anterior_cingulate
+Caudate (basal ganglia),caudate
+Head of caudate nucleus,caudate
+Cerebellar Hemisphere,cerebellum
+Cerebellum,cerebellum
+cerebellum,cerebellum
+Cortex,frontal_pole
+frontal pole,frontal_pole
+DLPFC,frontal_cortex
+dorsolateral prefrontal cortex,frontal_cortex
+Frontal Cortex,frontal_cortex
+Frontal Cortex (BA9),frontal_cortex
+frontal cortex,frontal_cortex
+prefrontal cortex,frontal_cortex
+left cerebral hemisphere,frontal_cortex
+right cerebral hemisphere,frontal_cortex
+inferior frontal gyrus,inferior_frontal_gyrus
+HIPPO,hippocampus
+Hippocampus,hippocampus
+hippocampus (hippocampal formation),hippocampus
+parahippocampal gyrus,parahippocampal_gyrus
+Hypothalamus,hypothalamus
+Nucleus accumbens (basal ganglia),nucleus_accumbens
+Putamen (basal ganglia),putamen
+Spinal cord (cervical c-1),spinal_cord
+Substantia nigra,substantia_nigra
+posterior cingulate cortex,posterior_cingulate
+superior temporal gyrus,superior_temporal_gyrus
+temporal cortex,temporal_cortex
+temporal neocortex,temporal_cortex
+parietal neocortex,parietal_cortex
+white matter of forebrain,white_matter
