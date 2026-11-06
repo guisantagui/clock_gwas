@@ -170,3 +170,62 @@ print(cc, digits = 3, row.names = FALSE)
 cat("\nGenotyped individuals with a gap:", sum(ind$has_genomics & !is.na(ind$gap_mean)), "\n")
 cat("Top-coded genotyped individuals without a gap (no imputed age given):",
     sum(ind$has_genomics & ind$age_topcoded & is.na(ind$gap_mean)), "\n")
+
+# Fold-to-fold consistency of the clocks
+################################################################################
+# Each held-out sample is predicted by a different fold model. These checks
+# quantify how much the models differ:
+#   * per-fold performance on held-out controls (before averaging repeats);
+#   * agreement of the fold models on samples that ALL of them predict out of
+#     sample (external samples, and cases vs the final model, which never
+#     trains on cases);
+#   * correlation of coefficient vectors between fold models.
+ctrl_ids <- d$sample_id[d$in_resid_fit]
+pf <- merge(pr, d[, c("sample_id", "age")], by = "sample_id")
+pf <- pf[pf$sample_id %in% ctrl_ids & !pf$sample_id %in% d$sample_id[d$role == "external"], ]
+per_fold <- do.call(rbind, lapply(split(pf, list(pf$rep, pf$fold), drop = TRUE), function(x)
+        cbind(rep = x$rep[1], fold = x$fold[1], metrics(x$age, x$predicted_age))))
+write.csv(per_fold, file.path(a$outdir, "oof_performance_per_fold.csv"), row.names = FALSE)
+cat("\nPer-fold performance on held-out controls:\n")
+print(per_fold, digits = 3, row.names = FALSE)
+
+ext <- pr[pr$sample_id %in% d$sample_id[d$role == "external"], ]
+if (nrow(ext) > 0) {
+        ext$model <- paste0("r", ext$rep, "f", ext$fold)
+        w <- reshape(ext[, c("sample_id", "model", "predicted_age")], idvar = "sample_id",
+                     timevar = "model", direction = "wide")
+        wm <- as.matrix(w[, -1])
+        cc_m <- cor(wm, use = "pairwise.complete.obs")
+        cat(sprintf("\nExternal samples (n=%d) predicted by %d fold models: median SD across models %.2f y; pairwise r min %.3f, median %.3f\n",
+                    nrow(wm), ncol(wm), median(apply(wm, 1, sd)),
+                    min(cc_m[upper.tri(cc_m)]), median(cc_m[upper.tri(cc_m)])))
+}
+
+f0 <- file.path(a$outdir, "rep1", "fold0", "predictions.csv")
+if (file.exists(f0)) {
+        p0 <- read.csv(f0, stringsAsFactors = FALSE)
+        cases <- d[!d$is_control & d$role == "cv", c("sample_id", "predicted_age")]
+        cmp <- merge(cases, p0[, c("sample_id", "predicted_age")], by = "sample_id",
+                     suffixes = c("_oof", "_final"))
+        dif <- cmp$predicted_age_oof - cmp$predicted_age_final
+        cat(sprintf("Cases (n=%d), OOF (mean of repeats) vs final all-controls clock: r %.3f, mean diff %.2f, SD diff %.2f y\n",
+                    nrow(cmp), cor(cmp$predicted_age_oof, cmp$predicted_age_final),
+                    mean(dif), sd(dif)))
+        write.csv(cmp, file.path(a$outdir, "cases_oof_vs_final.csv"), row.names = FALSE)
+}
+
+cf_files <- list.files(a$outdir, pattern = "^coefficients\\.csv$", recursive = TRUE, full.names = TRUE)
+cf_files <- cf_files[grepl("rep[0-9]+/fold[0-9]+/", cf_files)]
+if (length(cf_files) > 1) {
+        cfs <- lapply(cf_files, read.csv, stringsAsFactors = FALSE)
+        names(cfs) <- sub(".*(rep[0-9]+)/(fold[0-9]+)/.*", "\\1_\\2", cf_files)
+        feats <- setdiff(unique(unlist(lapply(cfs, `[[`, "feature"))), "(Intercept)")
+        cm <- sapply(cfs, function(x) { v <- setNames(rep(0, length(feats)), feats)
+                     v[intersect(x$feature, feats)] <- x$coefficient[match(intersect(x$feature, feats), x$feature)]; v })
+        ccf <- cor(cm)
+        write.csv(ccf, file.path(a$outdir, "coefficient_correlation_between_folds.csv"))
+        sel <- colSums(cm != 0)
+        cat(sprintf("Coefficient vectors across %d models: pairwise r min %.3f, median %.3f; %d genes selected by every model, %d by any\n",
+                    ncol(cm), min(ccf[upper.tri(ccf)]), median(ccf[upper.tri(ccf)]),
+                    sum(rowSums(cm != 0) == ncol(cm)), sum(rowSums(cm != 0) > 0)))
+}
