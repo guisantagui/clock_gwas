@@ -1,0 +1,17 @@
+Loading required package: SeuratObject
+Loading required package: sp
+
+Attaching package: ‘SeuratObject’
+
+The following object is masked from ‘package:anndata’:
+
+    Layers
+
+The following object is masked from ‘package:base’:
+
+    intersect
+
+Error in as.integer(as_r_value(x$indices)) : 
+  cannot coerce type 'environment' to vector of type 'integer'
+Calls: CreateSeuratObject ... initialize -> initialize -> callNextMethod -> .nextMethod
+Execution halted

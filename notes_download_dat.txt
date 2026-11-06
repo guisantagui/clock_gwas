@@ -1,0 +1,10 @@
+# Download GTEx data:
+
+https://dbgap.ncbi.nlm.nih.gov/aa/wga.cgi?login=NFL&page=list_wishlists#:~:text=run%20selector-,file%20selector,-transfer%20to%20another
+https://trace.ncbi.nlm.nih.gov/Traces/study/
+
+Go to https://trace.ncbi.nlm.nih.gov/Traces/study/?ff=1&dbgap_project=39922&o=data_category_s%3Ad&s=d2133006,d2133013, select datasets and generate cart file (krt).
+
+Then run:
+
+prefetch --ngc prj_39922.ngc cart_prj39922_202604131107.krt
