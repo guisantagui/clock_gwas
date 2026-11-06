@@ -42,6 +42,7 @@ p <- add_argument(p, "--topcode_age_female", help = "Imputed age for top-coded f
                   type = "numeric", default = NA)
 p <- add_argument(p, "--topcode_age_male", help = "Imputed age for top-coded males.",
                   type = "numeric", default = NA)
+p <- add_argument(p, "--no_fold_term", help = "Do not adjust for outer fold in the residualisation.", flag = TRUE)
 a <- parse_args(p)
 
 # Predictions
@@ -84,18 +85,37 @@ d$age_below_train_range <- !is.na(d$age) & d$age < a$min_train_age
 # Residualisation on OOF controls
 ################################################################################
 d$in_resid_fit <- d$is_control & !is.na(d$age) & !d$age_topcoded & d$age >= a$min_train_age
-fit_d <- d[d$in_resid_fit, ]
 f_full <- as.formula(a$resid_formula)
 f_age <- update(f_full, . ~ ns(age_used, df = 4))
 
+# Residualisation is done separately for each repeat, with the outer fold as an
+# extra factor (unless --no_fold_term), so that offsets between fold models are
+# removed; the per-repeat gaps are then averaged. External samples are averaged
+# over the fold models of the repeat and get their own level ("ext").
+pr_rep <- aggregate(predicted_age ~ sample_id + rep, data = pr, FUN = mean)
+base_cols <- setdiff(colnames(d), c("predicted_age", "predicted_age_sd", "n_predictions", "gap_raw"))
 resid_with <- function(f) {
-        fit <- lm(f, data = fit_d)
+        reps <- sort(unique(pr_rep$rep))
+        G <- matrix(NA_real_, nrow(d), length(reps))
         vars <- intersect(all.vars(f)[-1], c("substudy", "substudy_batch", "region", "sex"))
-        ok <- !is.na(d$age_used)
-        for (v in vars) ok <- ok & d[[v]] %in% unique(fit_d[[v]])
-        g <- rep(NA_real_, nrow(d))
-        g[ok] <- d$predicted_age[ok] - predict(fit, newdata = d[ok, ])
-        list(gap = g, fit = fit, unfit_levels = unique(d[!ok & !is.na(d$age_used), vars, drop = FALSE]))
+        unfit <- NULL
+        for (j in seq_along(reps)) {
+                rr <- pr_rep[pr_rep$rep == reps[j], c("sample_id", "predicted_age")]
+                dr <- d[, base_cols]
+                dr$predicted_age <- rr$predicted_age[match(dr$sample_id, rr$sample_id)]
+                fcol <- folds[[paste0("fold_r", reps[j])]][match(dr$individualID, folds$individualID)]
+                dr$fold_f <- factor(ifelse(dr$role == "external", "ext", fcol))
+                ff <- if (a$no_fold_term) f else update(f, . ~ . + fold_f)
+                fd <- dr[dr$in_resid_fit & !is.na(dr$predicted_age), ]
+                fit <- lm(ff, data = fd)
+                ok <- !is.na(dr$age_used) & !is.na(dr$predicted_age) & dr$fold_f %in% unique(fd$fold_f)
+                for (v in vars) ok <- ok & dr[[v]] %in% unique(fd[[v]])
+                G[ok, j] <- dr$predicted_age[ok] - suppressWarnings(predict(fit, newdata = dr[ok, ]))
+                unfit <- unique(rbind(unfit, dr[!ok & !is.na(dr$age_used) & !is.na(dr$predicted_age), vars, drop = FALSE]))
+        }
+        g <- rowMeans(G, na.rm = TRUE)
+        g[is.nan(g)] <- NA
+        list(gap = g, unfit_levels = unfit)
 }
 r_full <- resid_with(f_full)
 r_age <- resid_with(f_age)

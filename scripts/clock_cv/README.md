@@ -52,7 +52,7 @@ For a quick check, add `--debug_n_genes 600 --debug_n_train 300 --n_sv 3 --outdi
 - `folds.csv`, `folds_summary.txt`: fold assignment, counts by role/fold, 90+ among genotyped, genotyped N per region
 - `rep<r>/fold<k>/`: `predictions.csv`, `coefficients.csv`, `tuning.csv`, `clock.rds`, `log.txt`
 - `sample_gaps.csv`: OOF predicted age (mean over repeats), `gap_raw`, `gap_resid`
-  (`predicted_age ~ ns(age, 4) + substudy + region` fit on OOF controls), `gap_resid_ageonly`,
+  (`predicted_age ~ ns(age, 4) + substudy_batch + region + outer fold`, fit on OOF controls per repeat, then averaged over repeats), `gap_resid_ageonly`,
   `gap_ind_mean`, `gap_regional_dev` (sample gap − individual mean; individuals with ≥ 2 regions)
 - `individual_gaps.csv`: mean gap, and BLUP from `gap_resid ~ region + (1 | individual)` if `lme4` is installed
 - `oof_performance_controls.csv`, `gap_by_substudy_diagnosis.csv`
