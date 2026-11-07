@@ -42,6 +42,9 @@ p <- add_argument(p, "--topcode_age_female", help = "Imputed age for top-coded f
                   type = "numeric", default = NA)
 p <- add_argument(p, "--topcode_age_male", help = "Imputed age for top-coded males.",
                   type = "numeric", default = NA)
+p <- add_argument(p, "--life_table", help = "us_life_tables_e89_e90.csv from scripts/life_tables/get_us_life_tables.sh; top-coded ages get floor + e(floor) by sex.",
+                  default = NA)
+p <- add_argument(p, "--life_table_years", help = "Years of the life table to average (from-to).", default = "2006-2019")
 p <- add_argument(p, "--no_fold_term", help = "Do not adjust for outer fold in the residualisation.", flag = TRUE)
 a <- parse_args(p)
 
@@ -77,8 +80,24 @@ d <- merge(s, agg, by = "sample_id")
 ################################################################################
 d$age_used <- d$age
 tc <- d$age_topcoded
-d$age_used[tc & d$sex == "female"] <- a$topcode_age_female
-d$age_used[tc & d$sex == "male"] <- a$topcode_age_male
+if (!is.na(a$life_table)) {
+        lt <- read.csv(a$life_table, stringsAsFactors = FALSE)
+        yrs <- as.integer(strsplit(a$life_table_years, "-")[[1]])
+        lt <- lt[lt$year >= yrs[1] & lt$year <= yrs[2], ]
+        for (sx in c("female", "male")) {
+                for (fl in unique(d$age_floor[tc])) {
+                        col <- paste0("E_age_ge", fl)
+                        if (!col %in% colnames(lt)) stop("No ", col, " in ", a$life_table)
+                        v <- mean(lt[[col]][lt$sex == sx])
+                        d$age_used[tc & d$sex == sx & d$age_floor == fl] <- v
+                        message(sprintf("Top-coded %d+ %s: imputed age %.2f (%s, %s)", fl, sx, v,
+                                        basename(a$life_table), a$life_table_years))
+                }
+        }
+}
+# Explicit values override the life table (applied to every top-coding floor).
+if (!is.na(a$topcode_age_female)) d$age_used[tc & d$sex == "female"] <- a$topcode_age_female
+if (!is.na(a$topcode_age_male)) d$age_used[tc & d$sex == "male"] <- a$topcode_age_male
 d$gap_raw <- d$predicted_age - d$age_used
 d$age_below_train_range <- !is.na(d$age) & d$age < a$min_train_age
 

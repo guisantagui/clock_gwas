@@ -44,7 +44,8 @@ or step by step:
 ```bash
 Rscript scripts/clock_cv/01_make_folds.R --K 5 --n_rep 3
 Rscript scripts/clock_cv/02_run_fold.R --rep 1 --fold 1 --cores 4   # repeat for every rep/fold, plus --fold 0
-Rscript scripts/clock_cv/03_collect_gaps.R --topcode_age_female <E[age|>=90] F> --topcode_age_male <M>
+bash scripts/life_tables/get_us_life_tables.sh          # US life tables (CDC/NCHS) -> data/life_tables/
+Rscript scripts/clock_cv/03_collect_gaps.R --life_table data/life_tables/us_life_tables_e89_e90.csv
 ```
 For a quick check, add `--debug_n_genes 600 --debug_n_train 300 --n_sv 3 --outdir results/clock_cv_debug` to 02.
 
@@ -57,5 +58,7 @@ For a quick check, add `--debug_n_genes 600 --debug_n_train 300 --n_sv 3 --outdi
 - `individual_gaps.csv`: mean gap, and BLUP from `gap_resid ~ region + (1 | individual)` if `lme4` is installed
 - `oof_performance_controls.csv`, `gap_by_substudy_diagnosis.csv`
 
-Top-coded ages get a gap only if `--topcode_age_female/male` are given. `age_topcoded` flags them
+Top-coded ages ("90+", "89+") get floor + e(floor) from the US life tables by sex, averaged over
+2006–2019 (`--life_table_years`; 2020–2022 are lowered by COVID-19): 90+ = 94.81 (F) / 94.10 (M),
+89+ = 94.18 / 93.41. Without `--life_table` (or `--topcode_age_female/male`) they get no gap. `age_topcoded` flags them
 for the 90+ covariate and the sensitivity analysis.
