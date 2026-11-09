@@ -1,0 +1,24 @@
+# Environment for genotype merging, QC and association (brain clock GWAS).
+#
+# Create (on a compute node):
+#   micromamba create -f scripts/genotypes/env_gwas.yml
+#   # or on project storage: micromamba create -p /work/projects/<project>/envs/gwas -f scripts/genotypes/env_gwas.yml
+# Activate:
+#   micromamba activate gwas
+# After creating it, record the exact versions that were solved:
+#   micromamba env export -n gwas --explicit > scripts/genotypes/env_gwas.lock.txt
+name: gwas
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - bcftools=1.21     # VCF normalisation, filtering, merging
+  - htslib=1.21       # bgzip / tabix
+  - plink2            # QC, pgen conversion, PCA
+  - plink             # PLINK 1.9 (some QC steps, KING input)
+  - king              # relatedness / duplicates
+  - regenie           # association
+  - gatk4             # joint genotyping of the LBP gVCFs
+  - picard            # LiftoverVcf (b37 -> GRCh38) for the AMP-AD callset
+  - crossmap          # alternative liftover
+  - parallel          # GNU parallel for per-chromosome jobs
