@@ -14,6 +14,7 @@ channels:
 dependencies:
   - bcftools=1.21     # VCF normalisation, filtering, merging
   - htslib=1.21       # bgzip / tabix
+  - samtools=1.21     # CRAM headers, reference checks
   - plink2            # QC, pgen conversion, PCA
   - plink             # PLINK 1.9 (some QC steps, KING input)
   - king              # relatedness / duplicates
