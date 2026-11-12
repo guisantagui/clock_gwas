@@ -44,7 +44,7 @@ if [[ -f $GENOTYPED ]]; then OPT_ARGS+=(--genotyped "$GENOTYPED"); echo "Genotyp
 else echo "No $GENOTYPED: using has_WGS / has_snpArray from $IND_MDAT"; fi
 LT_ARGS=()
 if [[ -f $LIFE_TABLE ]]; then LT_ARGS+=(--life_table "$LIFE_TABLE"); fi
-FOLD_ARGS=("${MDAT_ARGS[@]}" --counts "$COUNTS" --lincs_genes "$LINCS" --cores "$CORES" --outdir "$OUTDIR" "$@")
+FOLD_ARGS=("${MDAT_ARGS[@]}" --folds "$OUTDIR/folds.csv" --counts "$COUNTS" --lincs_genes "$LINCS" --cores "$CORES" --outdir "$OUTDIR" "$@")
 
 run_fold() {  # rep fold
         Rscript $SCRIPTS/02_run_fold.R --rep "$1" --fold "$2" "${FOLD_ARGS[@]}"
