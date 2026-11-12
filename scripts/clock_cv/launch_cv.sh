@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 ################################################################################
 # Brain clock cross-fitting: run the whole pipeline.                           #
 #                                                                              #
@@ -12,11 +12,16 @@
 ################################################################################
 #SBATCH --job-name=clock_cv
 #SBATCH --time=0-04:00:00
-#SBATCH --mem=16G
-#SBATCH --cpus-per-task=4
-#SBATCH --output=clock_cv_%A_%a.out
+#SBATCH --mem=128G
+#SBATCH --cpus-per-task=28
+#SBATCH --output=clock_cv.out
+#SBATCH --error=clock_cv.err
+#SBATCH -p batch
+#SBATCH -q normal
 
 set -euo pipefail
+
+conda activate r-4.3.1
 
 # Inputs
 COUNTS=${COUNTS:-results/counts_parsed/counts_merged.csv}                    # genes x samples
@@ -29,8 +34,8 @@ LIFE_TABLE=${LIFE_TABLE:-data/life_tables/us_life_tables_e89_e90.csv}        # 9
 # Settings
 K=${K:-5}
 N_REP=${N_REP:-3}
-PARALLEL=${PARALLEL:-3}   # local: folds run at the same time
-CORES=${CORES:-4}         # cores per fold for cv.glmnet
+PARALLEL=${PARALLEL:-15}   # local: folds run at the same time
+CORES=${CORES:-2}         # cores per fold for cv.glmnet
 OUTDIR=${OUTDIR:-results/clock_cv}
 SCRIPTS=scripts/clock_cv
 
