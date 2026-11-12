@@ -11,7 +11,7 @@
 # Extra arguments are passed to 02_run_fold.R.                                 #
 ################################################################################
 #SBATCH --job-name=clock_cv
-#SBATCH --time=0-04:00:00
+#SBATCH --time=0-06:00:00
 #SBATCH --mem=128G
 #SBATCH --cpus-per-task=28
 #SBATCH --output=clock_cv.out
@@ -19,27 +19,27 @@
 #SBATCH -p batch
 #SBATCH -q normal
 
-set -euo pipefail
-
 conda activate r-4.3.1
+set -euo pipefail
+export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
+
 
 # Inputs
 COUNTS=${COUNTS:-results/counts_parsed/counts_merged.csv}                    # genes x samples
 SAMP_MDAT=${SAMP_MDAT:-results/counts_parsed/sample_metadata_merged.csv}     # aligned with counts
 IND_MDAT=${IND_MDAT:-results/counts_parsed/individual_metadata_merged_rnaseq_filt.csv}
-LINCS=${LINCS:-../brain_clock/data/LINCS/lincs_genes.txt}                     # gene universe
 GENOTYPED=${GENOTYPED:-data/genotypes/genotyped_individuals.txt}             # make_sample_map.R (optional)
 LIFE_TABLE=${LIFE_TABLE:-data/life_tables/us_life_tables_e89_e90.csv}        # 90+ ages (optional)
 
 # Settings
 K=${K:-5}
 N_REP=${N_REP:-3}
-PARALLEL=${PARALLEL:-15}   # local: folds run at the same time
+PARALLEL=${PARALLEL:-8}   # local: folds run at the same time
 CORES=${CORES:-2}         # cores per fold for cv.glmnet
 OUTDIR=${OUTDIR:-results/clock_cv}
 SCRIPTS=scripts/clock_cv
 
-for f in "$COUNTS" "$SAMP_MDAT" "$IND_MDAT" "$LINCS"; do
+for f in "$COUNTS" "$SAMP_MDAT" "$IND_MDAT"; do
         [[ -f $f ]] || { echo "Missing input: $f"; exit 1; }
 done
 mkdir -p "$OUTDIR"
@@ -49,7 +49,7 @@ if [[ -f $GENOTYPED ]]; then OPT_ARGS+=(--genotyped "$GENOTYPED"); echo "Genotyp
 else echo "No $GENOTYPED: using has_WGS / has_snpArray from $IND_MDAT"; fi
 LT_ARGS=()
 if [[ -f $LIFE_TABLE ]]; then LT_ARGS+=(--life_table "$LIFE_TABLE"); fi
-FOLD_ARGS=("${MDAT_ARGS[@]}" --folds "$OUTDIR/folds.csv" --counts "$COUNTS" --lincs_genes "$LINCS" --cores "$CORES" --outdir "$OUTDIR" "$@")
+FOLD_ARGS=("${MDAT_ARGS[@]}" --folds "$OUTDIR/folds.csv" --counts "$COUNTS" --gene_universe all --cores "$CORES" --outdir "$OUTDIR" "$@")
 
 run_fold() {  # rep fold
         Rscript $SCRIPTS/02_run_fold.R --rep "$1" --fold "$2" "${FOLD_ARGS[@]}"
