@@ -48,7 +48,10 @@ parse_age <- function(x) {
 # Loads sample and individual metadata, adds parsed ages, harmonised region and
 # genomics availability. sample_id is make.names(specimenID), which is how the
 # samples are named in the columns of counts_merged.csv.
-load_metadata <- function(samp_f, ind_f, region_map_f) {
+# genotyped_f (optional): one individualID per line, the individuals actually
+# present in the genotype VCFs (scripts/genotypes/make_sample_map.R). If given,
+# it replaces the has_WGS / has_snpArray metadata flags.
+load_metadata <- function(samp_f, ind_f, region_map_f, genotyped_f = NA) {
         s <- read.csv(samp_f, row.names = 1, stringsAsFactors = FALSE)
         i <- read.csv(ind_f, row.names = 1, stringsAsFactors = FALSE)
         if (any(duplicated(i$individualID))) stop("Duplicated individualID in ", ind_f)
@@ -67,7 +70,17 @@ load_metadata <- function(samp_f, ind_f, region_map_f) {
         }
 
         m <- match(s$individualID, i$individualID)
-        s$has_genomics <- (i$has_WGS | i$has_snpArray)[m] %in% TRUE
+        if (!is.na(genotyped_f)) {
+                geno <- trimws(readLines(genotyped_f))
+                s$has_genomics <- s$individualID %in% geno
+                flag <- (i$has_WGS | i$has_snpArray)[m] %in% TRUE
+                d <- unique(data.frame(id = s$individualID, flag, vcf = s$has_genomics))
+                message(sprintf("Genotyped individuals from %s: %d (metadata flags: %d; in VCF but flagged FALSE: %d; flagged TRUE but not in VCF: %d)",
+                                basename(genotyped_f), sum(d$vcf), sum(d$flag),
+                                sum(d$vcf & !d$flag), sum(!d$vcf & d$flag)))
+        } else {
+                s$has_genomics <- (i$has_WGS | i$has_snpArray)[m] %in% TRUE
+        }
         s$diagn_ind <- i$diagn_4BrainClck[m]
         s$is_control <- s$diagn_4BrainClck == "Control"
         # Library type is a batch within NABEC (cohort = NABEC_mRNA / NABEC_totalRNA).

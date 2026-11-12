@@ -46,6 +46,8 @@ p <- add_argument(p, "--life_table", help = "us_life_tables_e89_e90.csv from scr
                   default = NA)
 p <- add_argument(p, "--life_table_years", help = "Years of the life table to average (from-to).", default = "2006-2019")
 p <- add_argument(p, "--no_fold_term", help = "Do not adjust for outer fold in the residualisation.", flag = TRUE)
+p <- add_argument(p, "--genotyped", help = "individualIDs present in the genotype VCFs (make_sample_map.R); replaces has_WGS/has_snpArray.",
+                  default = NA)
 a <- parse_args(p)
 
 # Predictions
@@ -58,7 +60,7 @@ pr <- pr[!pr$in_training, ]
 message(length(pred_files), " fold prediction files, repeats: ",
         paste(sort(unique(pr$rep)), collapse = ","))
 
-s <- load_metadata(a$samp_mdat, a$ind_mdat, a$region_map)
+s <- load_metadata(a$samp_mdat, a$ind_mdat, a$region_map, a$genotyped)
 s <- s[!s$region %in% strsplit(a$exclude_regions, ",")[[1]], ]
 folds <- read.csv(a$folds, stringsAsFactors = FALSE)
 s$role <- folds$role[match(s$individualID, folds$individualID)]

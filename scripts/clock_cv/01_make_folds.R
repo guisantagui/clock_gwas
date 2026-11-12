@@ -40,13 +40,15 @@ p <- add_argument(p, "--K", help = "Number of folds.", default = 5L)
 p <- add_argument(p, "--n_rep", help = "Number of repeats with different seeds.", default = 1L)
 p <- add_argument(p, "--seed", help = "Base seed.", default = 2026L)
 p <- add_argument(p, "--outdir", help = "Output directory.", default = "results/clock_cv")
+p <- add_argument(p, "--genotyped", help = "individualIDs present in the genotype VCFs (make_sample_map.R); replaces has_WGS/has_snpArray.",
+                  default = NA)
 a <- parse_args(p)
 
 exclude_regions <- strsplit(a$exclude_regions, ",")[[1]]
 external <- strsplit(a$external, ",")[[1]]
 dir.create(a$outdir, recursive = TRUE, showWarnings = FALSE)
 
-s <- load_metadata(a$samp_mdat, a$ind_mdat, a$region_map)
+s <- load_metadata(a$samp_mdat, a$ind_mdat, a$region_map, a$genotyped)
 s <- s[!s$region %in% exclude_regions, ]
 message(sprintf("%d samples / %d individuals after excluding regions: %s",
                 nrow(s), length(unique(s$individualID)), paste(exclude_regions, collapse = ", ")))

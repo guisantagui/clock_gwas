@@ -11,9 +11,16 @@
 # NABEC:            dbGaP sample-info.csv from phg001711 (optional; give its  #
 #                   path with --nabec_info once copied from Iris).            #
 #                                                                              #
+# The VCF sample lists are the ground truth for who is genotyped: with       #
+# --vcf_samples DIR (files ampad.txt, gtex.txt, nabec.txt, lbp.txt, each the  #
+# output of 'bcftools query -l', or the sample names for LBP), only samples   #
+# actually present in a callset are kept, and unmapped VCF IDs are reported.  #
+#                                                                              #
 # Output (contains controlled-access IDs: keep it in data/, never commit):    #
 #   data/genotypes/sample_map.tsv  cohort, vcf_id, individualID, has_gap, sex  #
 #   data/genotypes/keep_<cohort>.txt  VCF IDs of individuals with a gap        #
+#   data/genotypes/genotyped_individuals.txt  individualIDs present in a VCF   #
+#     -> pass to the clock scripts with --genotyped                            #
 ################################################################################
 suppressPackageStartupMessages(library(argparser))
 p <- arg_parser("Build the WGS sample map.")
@@ -23,6 +30,8 @@ p <- add_argument(p, "--ind", default = "results/counts_parsed/individual_metada
 p <- add_argument(p, "--gaps", default = "results/clock_cv/individual_gaps.csv", help = "Individual gaps.")
 p <- add_argument(p, "--gtex_samples", default = NA, help = "bcftools query -l of the GTEx VCF (optional).")
 p <- add_argument(p, "--nabec_info", default = NA, help = "NABEC sample-info.csv from phg001711 (optional).")
+p <- add_argument(p, "--vcf_samples", default = NA,
+                  help = "Directory with <cohort>.txt sample lists from the VCFs (ampad, gtex, nabec, lbp).")
 p <- add_argument(p, "--outdir", default = "data/genotypes", help = "Output directory.")
 a <- parse_args(p)
 dir.create(a$outdir, recursive = TRUE, showWarnings = FALSE)
@@ -74,6 +83,21 @@ if (!is.na(a$nabec_info)) {
 }
 
 m <- do.call(rbind, maps)
+
+# Keep only samples present in the VCFs (if the sample lists are given).
+if (!is.na(a$vcf_samples)) {
+        keep <- rep(FALSE, nrow(m))
+        for (co in unique(m$cohort)) {
+                f <- file.path(a$vcf_samples, paste0(co, ".txt"))
+                if (!file.exists(f)) { warning("No sample list for ", co, " (", f, "); cohort dropped"); next }
+                v <- trimws(readLines(f)); v <- v[v != ""]
+                in_map <- v %in% m$vcf_id[m$cohort == co]
+                message(sprintf("%-6s VCF samples: %4d | mapped to an individual: %4d", co, length(v), sum(in_map)))
+                if (any(!in_map)) message("   unmapped, e.g.: ", paste(head(v[!in_map], 5), collapse = ", "))
+                keep <- keep | (m$cohort == co & m$vcf_id %in% v)
+        }
+        m <- m[keep, ]
+}
 m$in_clock_metadata <- m$individualID %in% ind$individualID
 m$has_gap <- m$individualID %in% gap_ids
 m$sex <- ind$sex[match(m$individualID, ind$individualID)]
@@ -83,6 +107,9 @@ for (co in unique(m$cohort)) {
         writeLines(unique(m$vcf_id[m$cohort == co & m$has_gap]),
                    file.path(a$outdir, sprintf("keep_%s.txt", co)))
 }
+geno <- sort(unique(m$individualID[m$in_clock_metadata]))
+writeLines(geno, file.path(a$outdir, "genotyped_individuals.txt"))
+message(length(geno), " clock individuals present in a genotype callset -> genotyped_individuals.txt")
 print(with(m, table(cohort, has_gap)))
 if (any(duplicated(m$individualID[m$has_gap]))) {
         message("Individuals with more than one WGS sample (keep one after KING):")
