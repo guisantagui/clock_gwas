@@ -55,16 +55,22 @@ maps <- list(bio, lbp, gtex)
 
 # NABEC
 if (!is.na(a$nabec_info)) {
-        ni <- read.csv(a$nabec_info, stringsAsFactors = FALSE, colClasses = "character")
-        message("NABEC sample-info columns: ", paste(colnames(ni), collapse = ", "))
-        # Find the column whose values match the clock's NABEC individualIDs.
+        # dbGaP sample-info.csv: '#' lines describe the columns, no header row.
+        # Column 1 = SubjectID (as in the RNA-seq metadata, e.g. UKY-1066),
+        # column 2 = IID, the sample ID used in the VCF (e.g. KEN-1066).
+        ni <- read.csv(a$nabec_info, header = FALSE, comment.char = "#",
+                       stringsAsFactors = FALSE, colClasses = "character")
+        ni <- data.frame(individualID = trimws(ni[[1]]), vcf_id = trimws(ni[[2]]))
         nab_ids <- ind$individualID[ind$substudy == "NABEC"]
-        hit <- sapply(ni, function(v) sum(v %in% nab_ids))
-        id_col <- names(which.max(hit))
-        vcf_col <- intersect(c("SAMPLE_ID", "SAMPID", "sample_id", "Sample_ID"), colnames(ni))[1]
-        message(sprintf("NABEC: individualID from '%s' (%d matches), VCF ID from '%s'",
-                        id_col, max(hit), vcf_col))
-        maps[[4]] <- data.frame(cohort = "nabec", vcf_id = ni[[vcf_col]], individualID = ni[[id_col]])
+        message(sprintf("NABEC: %d WGS samples, %d match RNA-seq individualIDs",
+                        nrow(ni), sum(ni$individualID %in% nab_ids)))
+        flag_wrong <- ni$individualID %in% nab_ids &
+                !(ind$has_WGS | ind$has_snpArray)[match(ni$individualID, ind$individualID)]
+        if (any(flag_wrong)) {
+                message(sum(flag_wrong), " NABEC individuals have WGS but has_WGS is FALSE in ", a$ind,
+                        " (e.g. ", paste(head(ni$individualID[flag_wrong], 3), collapse = ", "), ")")
+        }
+        maps[[4]] <- data.frame(cohort = "nabec", vcf_id = ni$vcf_id, individualID = ni$individualID)
 }
 
 m <- do.call(rbind, maps)
