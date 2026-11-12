@@ -57,7 +57,7 @@ dim(ind_mdat_filt[(!ind_mdat_filt$has_WGS & !ind_mdat_filt$has_snpArray) & ind_m
 
 table(ind_mdat_filt[(!ind_mdat_filt$has_WGS & !ind_mdat_filt$has_snpArray) & ind_mdat_filt$diagn_4BrainClck == "Control", ]$substudy)
 
-sum(make.names(samp_mdat_rnaseq$individualID) %in% controls_wo_genomics)
+sum(samp_mdat_rnaseq$individualID %in% controls_wo_genomics)
 
 
 controls_w_genomics <- ind_mdat_filt$individualID[
