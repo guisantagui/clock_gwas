@@ -7,6 +7,12 @@
 #   bash scripts/genotypes/00_inventory.sh > inventory.txt 2>&1                #
 ################################################################################
 
+export MAMBA_ROOT_PREFIX="/work/projects/car_t_methylome/software/micromamba"
+
+eval "$(micromamba shell hook --shell bash)"
+
+micromamba activate gwas
+
 G=${G:-/scratch/users/gsantamaria/test_large_files/gwas_clock}
 AMPAD=$G/AMP_AD/WGS_Harmonization/genomics
 LBP=$G/AMP_AD/LBP/alignments
@@ -57,3 +63,5 @@ tar -tzf $NABEC/phg001711.v1.NABEC_WGS.genotype-calls-vcf.WGS_markerset_grc38.c1
 
 echo; echo "### Disk"
 df -h $G | tail -1
+
+micromamba deactivate
